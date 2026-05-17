@@ -9,8 +9,8 @@ The same **Kilo Code + oMLX** pattern works in **VS Code** or **IntelliJ** if yo
 ## Goal
 
 - Run a suitable model from disk with **oMLX**.
-- Point **Kilo Code** to oMLX's local endpoint.
-- Keep proprietary source code on your Mac.
+- Use **Kilo Code** only as the IDE client to **oMLX** on **`127.0.0.1`**. **Strictly prohibited:** any **model** traffic that sends **repository code or prompts** to **hosted**, **gateway**, or other **cloud** inference—**only** oMLX on loopback may perform inference for this workflow.
+- Keep proprietary source code and prompts on your Mac for those **oMLX-only** model calls.
 
 ## What oMLX provides
 
@@ -32,7 +32,7 @@ The same **Kilo Code + oMLX** pattern works in **VS Code** or **IntelliJ** if yo
 - Apple Silicon Mac with **macOS 26 Tahoe or newer**.
 - [oMLX](https://omlx.ai/)
 - **[Cursor](https://cursor.com/)** (company license is assumed; same extension marketplace as VS Code).
-- [Kilo Code](https://kilo.ai/) (install as the **Kilo Code** extension from the marketplace **inside Cursor**; full steps are in [Cursor + Kilo Code integration](#cursor--kilo-code-integration).)
+- [Kilo Code](https://kilo.ai/) (install from the marketplace **inside Cursor**). The extension requires **sign-in** to a **Kilo account** and ships **Kilo Gateway**–backed features (**autocomplete**, **background** helpers, **hosted** model lists) that do **not** use your **oMLX** URL. **Before you open confidential repositories**, open **Kilo Code → Settings** and **disable** those features so **all** chat and agent model calls go **only** to **oMLX** on loopback—see [Kilo Code: local inference only](#kilo-code-local-inference-only) and [Security and compliance](#security-and-compliance).
 
 ## Install oMLX (DMG)
 
@@ -53,6 +53,8 @@ Models of interest:
 - [mlx-community/Qwen3.6-27B-4bit](https://huggingface.co/mlx-community/Qwen3.6-27B-4bit)
 - [mlx-community/gemma-4-31b-it-4bit](https://huggingface.co/mlx-community/gemma-4-31b-it-4bit)
 - [mlx-community/gemma-4-26b-a4b-it-4bit](https://huggingface.co/mlx-community/gemma-4-26b-a4b-it-4bit)
+
+At the time this guide was written, each repo above distributed weights as **`*.safetensors`** and carried an **Apache 2.0** license on Hugging Face. **Licenses and file layouts can change**—always open the repo’s **`LICENSE`** and file listing before you download or pin a revision for production.
 
 Coding and analysis scores along with speed and memory usage of these models:
 
@@ -79,34 +81,45 @@ All these models are well suited for agentic coding: they support **chain of tho
 
 The **Gemma 4** series is less capable but worth keeping when you want a second opinion.
 
+## Inference cost strategy (local first, then Cursor)
+
+A practical way to **cut metered cloud spend** while keeping **Cursor** fully in play under your **company license**:
+
+1. **Default — local oMLX:** Run day-to-day agent and chat work through **Kilo Code** with **`mlx-community/Qwen3.6-35B-A3B-4bit`** on **oMLX** ([Download models](#download-models)). It is a strong **MoE** coding model with high throughput on Apple Silicon; most routine refactors, explanations, and multi-step edits never need a cloud token.
+
+2. **When the local model struggles — Cursor Composer 2:** Switch the same task to **Cursor’s** native **Composer** flow and choose **Composer 2**. Cursor has published that **Composer 2** builds on **Moonshot AI’s Kimi K2.5** as a base, then applies extensive **Cursor-side training** on real coding sessions—so it is not “raw Kimi,” but a **Cursor-hosted** coding model. Teams often report **frontier-class** results on hard repos at **much lower cost** than top-tier Claude or GPT; on some benchmarks and tasks it can **match or beat Claude Opus**–class models, though any model wins task-by-task.
+
+3. **Rare stubborn problems — top cloud tiers:** For the few jobs where neither local **Qwen3.6-35B-A3B** nor **Composer 2** is enough, use **Cursor’s** strongest available models—e.g. **Claude Opus 4.7** or **GPT-5.5**.
+
 ## Security and compliance
 
 ### Trusted sources and safe weight formats
 
 - Download models **only** from **trusted publishers** and mirrors you can tie to them: official org accounts on Hugging Face (for example **`mlx-community`**, **`Qwen`**, **`Google`**, **`meta-llama`**), your company’s artifact registry, or signed internal bundles approved by security.
 - **Never** execute or import unknown **`.pickle`**, **`.pkl`**, or **`joblib`** blobs from the internet. **Do not** put them in your model directory.
-- Prefer **`*.safetensors`** trees typical of Hugging Face MLX repos used with oMLX. If policy mandates another format, confirm support for your **exact** oMLX build before copying files.
+- Stick to **safer weight formats**—for oMLX, use **`*.safetensors`** weights installed through **oMLX’s model downloader** in **`/admin`**. **Do not** use pickle-based weight or checkpoint formats from untrusted sources.
 
 ### Model scanning and sandboxing
 
 - Run your organization’s **mandatory checks** after download (EDR, internal malware pipeline, checksums against a known-good manifest).
 - For **first contact** with a new vendor or repo, use a **dedicated sandbox** with no production credentials before promoting the same artifact hash to a managed workstation.
 
-### Telemetry, logging, and network exposure
+### Network exposure and logging
 
-- **oMLX:** review **`/admin`** and **`~/.omlx/settings.json`** for diagnostics, updates, or logging you must disable under policy.
-- **Cursor:** review **Privacy**, **Network**, telemetry, indexing, and any **cloud** features your security team requires you to configure. **Kilo Code** calling **`127.0.0.1`** for inference does **not** make the whole IDE air-gapped—Cursor’s **native** AI features are separate.
-- **Kilo Code:** review the extension’s settings and [Kilo](https://kilo.ai/) documentation for optional online features, updates, and telemetry that must align with policy.
-- **Inference bind:** keep the HTTP server on **`127.0.0.1`**. Do **not** bind to **`0.0.0.0`** or a routable interface without an **isolated lab** and explicit approval—otherwise prompts and code may be exposed on the **LAN**.
+- **Cursor:** Use **Cursor** under your **company license** as your organization provides it. This tutorial **adds** **Kilo Code** with a **custom provider** to **oMLX** so agent work you run through **Kilo** can use **local** weights and **reduce** metered cloud model use for that path.
+- **oMLX:** In **`/admin`** and **`~/.omlx/settings.json`**, adjust diagnostics, updates, or logging if your deployment requires it.
+- **Kilo Code:** **Disable autocomplete**, **background** cloud model use, **Auto Free**, **hosted** model selections, and any path that sends **code or prompts** to **Kilo’s gateway** or third-party APIs for this workflow ([Kilo Code: local inference only](#kilo-code-local-inference-only)). Sign-in still uses Kilo’s servers for **identity**; model inference for agents must remain on **oMLX** only.
+- **Inference bind:** Keep the oMLX HTTP server on **`127.0.0.1`** only. Do **not** bind to **`0.0.0.0`**, **`::`**, or a routable interface except in a **network-isolated lab**; otherwise prompts and code may be reachable on the **LAN**.
 
 ### Licensing
 
-- For **commercial or corporate** use, read the model **`LICENSE`** on Hugging Face and have **legal or open-source review** confirm internal inference is allowed.
+- For **commercial or corporate** use, read the model **`LICENSE`** on Hugging Face (and any **use** / **acceptable use** terms from the publisher) and have **legal or open-source review** confirm **on-device inference** and your use case are allowed.
+- **Apache 2.0** and **MIT** are often the simplest to clear; other licenses (copyleft, research-only, non-commercial, custom addenda) may need explicit approval—do not assume “open weights” implies enterprise use.
 
 ### Sensitive data and chat history
 
-- **Cursor**, **Kilo Code**, and the oMLX **admin chat** can **persist** conversation text, workspace metadata, and logs on disk. Treat those like confidential data: encryption, access controls, secure deletion on hardware rotation.
-- **Never** paste **passwords, API keys, session tokens, or raw customer PII** into prompts—even local models and logs can retain them.
+- **Cursor**, **Kilo Code**, and the oMLX **admin chat** often **persist conversation history in plain text** (plus workspace metadata and logs on disk). Treat those stores like confidential data: encryption at rest where possible, access controls, and secure deletion on hardware rotation.
+- **Never** paste **passwords, API keys, session tokens, or raw customer PII** into prompts—even local models and logs can retain them; redact or use synthetic fixtures when testing.
 
 ## Check the API
 
@@ -139,9 +152,9 @@ curl -s http://127.0.0.1:8000/v1/chat/completions \
 
 ## Cursor + Kilo Code integration
 
-Connect **Kilo Code** to the **same** oMLX server so **Kilo’s** chat and agent flows use **local** weights. **[Kilo Code custom models](https://kilo.ai/docs/code-with-ai/agents/custom-models)** is the authoritative reference for the **custom provider** dialog and optional **`kilo.jsonc`** fields—UI labels can shift between releases, so prefer the doc over screenshots.
+Connect **Kilo Code** to the **same** oMLX server so **Kilo’s** chat and agent flows use **local** weights. See **[Kilo Code custom models](https://kilo.ai/docs/code-with-ai/agents/custom-models)** for the **custom provider** dialog and **`kilo.jsonc`**.
 
-**Two AI surfaces:** Cursor ships **native** chat, agent, and model features. For the workflow in this guide, use **only Kilo Code** with your **oMLX** custom provider when the repo or policy requires **local** inference. Accidentally using **Cursor’s** built-in agent or a **hosted** model can send context off-machine and will be billed accordingly.
+**Cursor and Kilo Code:** Keep using **Cursor** as your licensed IDE. **Add** **Kilo Code** with a **custom provider** to **oMLX** so tasks you run through **Kilo** use **local** inference and **lower** Cursor’s **metered** cloud model spend for that work. The **Kilo → loopback** path is separate from Cursor’s own model plumbing (see [Why localhost must go through Kilo](#why-localhost-must-go-through-kilo-not-cursors-override-or-agent)).
 
 ### Why localhost must go through Kilo (not Cursor’s override or Agent)
 
@@ -151,6 +164,19 @@ Connect **Kilo Code** to the **same** oMLX server so **Kilo’s** chat and agent
 
 - **oMLX** is running and **`curl http://127.0.0.1:8000/v1/models`** succeeds ([Check the API](#check-the-api)).
 - You have **`YOUR_MODEL_ID`** from that JSON.
+
+### Kilo Code: local inference only
+
+This guide uses **Kilo Code** as the **IDE client** to **oMLX**. Kilo also exposes **cloud** and **gateway** features that must be **off** for confidential work: they send **code or prompts** outside your **oMLX** loopback path ([Autocomplete](https://kilo.ai/docs/code-with-ai/features/autocomplete), [Using Kilo for Free](https://kilo.ai/docs/getting-started/using-kilo-for-free), [Using the Kilo Code Provider](https://kilo.ai/docs/ai-providers/kilocode)).
+
+**After sign-in** ([Setup & Authentication](https://kilo.ai/docs/getting-started/setup-authentication)), open **Kilo Code → Settings** and:
+
+- **Autocomplete:** **Disable** it (including **automatic** ghost-text completions and any **manual** inline completion shortcut). Defaults route fill-in-the-middle requests through **Kilo’s gateway**, not your **oMLX** URL. Use the **status bar** control to **snooze** if you need a quick stop while hunting the permanent toggle.
+- **Background helpers:** **Disable** or clear any **session title**, **summarization**, or **“small model”** feature that calls a **hosted** model; those requests do **not** go to **oMLX**.
+- **Model picker:** Use **only** your **custom provider** + **`YOUR_MODEL_ID`** for agent chat. **Auto Free**, **hosted** catalog models, and other **cloud** endpoints are **strictly prohibited** for repository inference in this workflow.
+- **Credits and gateway:** Ignore built-in **gateway** model lists for this workflow; they exist for Kilo’s cloud offering and are the wrong surface for **oMLX-only** inference.
+
+Sign-in still uses Kilo’s servers for **authentication** only; **model** traffic for agents must stay on **`127.0.0.1`**.
 
 ### Install the extension
 
@@ -166,32 +192,34 @@ Connect **Kilo Code** to the **same** oMLX server so **Kilo’s** chat and agent
    - **Provider ID:** a short unique id (letters, numbers, hyphens, underscores), e.g. **`omlx`**.
    - **Display name:** e.g. **oMLX (localhost)**.
    - **Base URL:** **`http://127.0.0.1:8000/v1`** (trailing **`/v1`** must match oMLX’s OpenAI-compatible root).
-   - **API key:** **`YOUR_API_KEY`** — an **Additional API Key** from oMLX ([Check the API](#check-the-api)), not the admin login key. Leave empty only if oMLX key enforcement is disabled and policy allows it.
-   - **Models:** pick **`YOUR_MODEL_ID`** from the auto-fetched list after the base URL resolves, or add it manually so the **model id** matches **`/v1/models`** exactly.
+   - **API key:** **`YOUR_API_KEY`** — an **Additional API Key** from oMLX ([Check the API](#check-the-api)), not the admin login key. Leave empty only when API-key enforcement is **off** in oMLX and you accept **unauthenticated** loopback access.
+   - **Models:** pick **`YOUR_MODEL_ID`** from the auto-fetched list after the base URL resolves, or type the **model id** yourself so it matches **`/v1/models`** exactly.
 5. Save the provider, then choose **`provider_id/YOUR_MODEL_ID`** (Kilo’s **`provider_id/model_id`** form) in the **model picker** for sessions that should stay on loopback.
 
-**Agent tooling:** For tool use (edits, terminal, and similar), enable **`tool_call: true`** for that model in **`kilo.jsonc`** if the UI does not set it—see [custom models](https://kilo.ai/docs/code-with-ai/agents/custom-models).
+**Agent tooling:** For tool use (edits, terminal, and similar), set **`tool_call: true`** for that model in **`kilo.jsonc`** when the UI does not expose it—see [custom models](https://kilo.ai/docs/code-with-ai/agents/custom-models).
 
 **Context limits:** For local models, Kilo recommends setting **`limit.context`** and **`limit.output`** under the model entry so compaction and caps match your oMLX model; otherwise defaults may not match the real context window.
 
 ### If Kilo Code fails against oMLX
 
 - Confirm **`~/.omlx/logs/server.log`** shows incoming requests when you send a message; if nothing appears, the base URL or bind address is wrong.
-- **API surface:** If **`curl`** from [Check the API](#check-the-api) works but an agent step fails, check whether your oMLX build implements every route Kilo calls (often centered on **`/v1/chat/completions`**). Upgrade oMLX or narrow the agent feature if a route is missing.
-- **Timeouts:** Very large prompts or slow decode can exceed default client timeouts; increase provider **timeout** in **`kilo.jsonc`** if Kilo documents that option for your provider type.
+- **API surface:** If **`curl`** from [Check the API](#check-the-api) works but an agent step fails, confirm oMLX implements the routes Kilo needs (typically **`/v1/chat/completions`**). Upgrade oMLX or narrow the agent feature if a route is missing.
+- **Timeouts:** Very large prompts or slow decode can exceed default client timeouts; increase the custom provider **timeout** in **`kilo.jsonc`** per [Kilo Code custom models](https://kilo.ai/docs/code-with-ai/agents/custom-models).
 
 ### Cursor and Kilo privacy
 
-Tune **Cursor** under **Settings** (including **Privacy** / **Network** as your org requires) and review **Kilo Code**’s own options and documentation so the **stack** matches policy. Local inference through Kilo does **not** automatically disable Cursor telemetry or other Cursor features.
+**Cursor** follows your **company license** and settings as deployed. **Kilo Code** is separate: in **Kilo Code → Settings**, **disable** **autocomplete** and other **gateway** features so they do not send **code or prompts** off your **oMLX** path ([Kilo Code: local inference only](#kilo-code-local-inference-only)). Pointing **Kilo** at **oMLX** does **not** change Kilo’s defaults for you.
 
 ## Privacy rule for proprietary code
 
-When you intend to stay **fully local** for sensitive repositories:
+For repositories where **all** model calls must stay on **oMLX**:
 
-- **Base URL:** `http://127.0.0.1:8000/v1` in the **Kilo Code** custom provider (change only after security review if you use another **loopback** port—do not point at a wide-area host).
+- **Base URL:** `http://127.0.0.1:8000/v1` in the **Kilo Code** custom provider (another **loopback** port is fine if oMLX is configured there—**never** a wide-area host).
 - **Model id:** exactly what **`GET /v1/models`** returns for your oMLX instance.
+- **Autocomplete:** **Off**—it does **not** use the **oMLX** URL ([Kilo Code: local inference only](#kilo-code-local-inference-only)).
+- **Background cloud models:** **Off**—session titling and similar must not call **hosted** models ([Using Kilo for Free](https://kilo.ai/docs/getting-started/using-kilo-for-free)).
 
-Do **not** select **hosted** cloud models, OAuth-backed tiers, or any provider you do not control in Kilo while handling sensitive code—keep the active model on your **`omlx`** (or similarly named) custom provider only. In **Cursor**, also avoid **native** cloud models and **built-in Agent** for those same repos unless your security team has explicitly approved that path (see [Why localhost must go through Kilo](#why-localhost-must-go-through-kilo-not-cursors-override-or-agent) for why Cursor’s override and Agent are the wrong path for localhost oMLX).
+Do **not** select **hosted** cloud models or OAuth-backed **cloud** tiers in **Kilo** for those repos—keep the active model on your **`omlx`** (or similarly named) custom provider only. In **Cursor**, **do not** use **OpenAI base URL override** or the **built-in Agent** expecting them to drive **oMLX** on loopback; use **Kilo Code** for that integration ([Why localhost must go through Kilo](#why-localhost-must-go-through-kilo-not-cursors-override-or-agent)).
 
 ## Final check
 
@@ -213,7 +241,7 @@ In **Cursor**, with **Kilo Code** using your **custom provider** model **`YOUR_M
 ### `API key required` or `authentication_error`
 
 - Use **`Authorization: Bearer …`** in **`curl`** with the same secret oMLX expects ([Check the API](#check-the-api)), and the same value in Kilo Code’s custom provider **API key** field ([Cursor + Kilo Code integration](#cursor--kilo-code-integration)).
-- Or disable API-key enforcement in **`/admin`** if policy allows anonymous loopback access.
+- Or disable API-key enforcement in **`/admin`** only when you intentionally accept **unauthenticated** access to the loopback API.
 
 ### Kilo Code cannot reach oMLX
 
@@ -221,7 +249,7 @@ In **Cursor**, with **Kilo Code** using your **custom provider** model **`YOUR_M
 - If the server requires a key, the Kilo **API key** must be an **Additional API Key**, not the admin portal password ([Check the API](#check-the-api)).
 - Remove typos in **Provider ID** / model picker strings; Kilo uses **`provider_id/model_id`** format.
 - If **`curl`** to **`127.0.0.1`** works but Kilo still cannot connect, check **host firewall** or tools like **Little Snitch** that can block the extension host—even for loopback.
-- Remember **Cursor** and **Kilo Code** may still use **other** network features per their own settings ([Security and compliance](#security-and-compliance), [Privacy rule for proprietary code](#privacy-rule-for-proprietary-code)).
+- **Kilo Code** can still open **network** connections for **sign-in** and any **gateway** features you have left enabled—**disable** those in **Kilo Code → Settings** when you need a strict **oMLX-only** path ([Security and compliance](#security-and-compliance), [Privacy rule for proprietary code](#privacy-rule-for-proprietary-code)). **Cursor** uses the network per your **company** deployment and license.
 
 ### “Access to private networks is forbidden” (or similar provider error)
 
@@ -235,5 +263,5 @@ You are almost certainly using **Cursor’s native** chat or **Agent** (or **Ove
 ### Memory pressure
 
 - Use a **lower-bit** quantized build that fits unified memory.
-- Adjust memory or concurrency limits in **`/admin`** (or your build’s settings).
+- Adjust memory or concurrency limits in oMLX **`/admin`**.
 - Close heavy apps (browsers, Docker, extra IDE windows) during large-repo work.
