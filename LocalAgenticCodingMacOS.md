@@ -9,8 +9,8 @@ The same **Kilo Code + oMLX** pattern works in **VS Code** or **IntelliJ** if yo
 ## Goal
 
 - Run a suitable model from disk with **oMLX**.
-- Use **Kilo Code** only as the IDE client to **oMLX** on **`127.0.0.1`**. **Strictly prohibited:** any **model** traffic that sends **repository code or prompts** to **hosted**, **gateway**, or other **cloud** inference—**only** oMLX on loopback may perform inference for this workflow.
-- Keep proprietary source code and prompts on your Mac for those **oMLX-only** model calls.
+- Use **Kilo Code** only as the IDE client to **oMLX** on **`127.0.0.1`**.
+- Keep proprietary source code and prompts on your Mac for those **oMLX-only** model calls. **Strictly prohibited:** any **model** traffic that sends **repository code or prompts** to **hosted**, **gateway**, or other **cloud** inference—**only** oMLX on loopback may perform inference for this workflow.
 
 ## What oMLX provides
 
@@ -32,7 +32,7 @@ The same **Kilo Code + oMLX** pattern works in **VS Code** or **IntelliJ** if yo
 - Apple Silicon Mac with **macOS 26 Tahoe or newer**.
 - [oMLX](https://omlx.ai/)
 - **[Cursor](https://cursor.com/)** (company license is assumed; same extension marketplace as VS Code).
-- [Kilo Code](https://kilo.ai/) (install from the marketplace **inside Cursor**). The extension requires **sign-in** to a **Kilo account** and ships **Kilo Gateway**–backed features (**autocomplete**, **background** helpers, **hosted** model lists) that do **not** use your **oMLX** URL. **Before you open confidential repositories**, open **Kilo Code → Settings** and **disable** those features so **all** chat and agent model calls go **only** to **oMLX** on loopback—see [Kilo Code: local inference only](#kilo-code-local-inference-only) and [Security and compliance](#security-and-compliance).
+- [Kilo Code](https://kilo.ai/) (install from the marketplace **inside Cursor**). The extension requires **sign-in** to a **Kilo account** and ships **Kilo Gateway**–backed features (**autocomplete**, **background** helpers, **hosted** model lists) that do **not** use your **oMLX** URL. **Before you open confidential repositories**, configure **Kilo Code → Settings** per [Kilo Code: local inference only](#kilo-code-local-inference-only) and [Security and compliance](#security-and-compliance).
 
 ## Install oMLX (DMG)
 
@@ -169,11 +169,11 @@ Connect **Kilo Code** to the **same** oMLX server so **Kilo’s** chat and agent
 
 This guide uses **Kilo Code** as the **IDE client** to **oMLX**. Kilo also exposes **cloud** and **gateway** features that must be **off** for confidential work: they send **code or prompts** outside your **oMLX** loopback path ([Autocomplete](https://kilo.ai/docs/code-with-ai/features/autocomplete), [Using Kilo for Free](https://kilo.ai/docs/getting-started/using-kilo-for-free), [Using the Kilo Code Provider](https://kilo.ai/docs/ai-providers/kilocode)).
 
-**After sign-in** ([Setup & Authentication](https://kilo.ai/docs/getting-started/setup-authentication)), open **Kilo Code → Settings** and:
+**After sign-in** ([Setup & Authentication](https://kilo.ai/docs/getting-started/setup-authentication)), open **Kilo Code → Settings**:
 
-- **Autocomplete:** **Disable** it (including **automatic** ghost-text completions and any **manual** inline completion shortcut). Defaults route fill-in-the-middle requests through **Kilo’s gateway**, not your **oMLX** URL. Use the **status bar** control to **snooze** if you need a quick stop while hunting the permanent toggle.
+- **Models:** After you complete **Steps (custom OpenAI-compatible provider)** below, open **Settings → Models** and set **every role that allows it** (Default, Small, and similar) to **`provider_id/YOUR_MODEL_ID`**. Do **not** leave **Auto Free**, **hosted** catalog models, or other **cloud** endpoints selected for confidential repos.
+- **Autocomplete:** **Disable** it. The Autocomplete slot only offers **cloud** models (it does **not** use your **oMLX** URL); leaving it on sends fill-in-the-middle traffic to **Kilo’s gateway**. Use the **status bar** control to **snooze** if you need a quick stop while finding the permanent toggle.
 - **Background helpers:** **Disable** or clear any **session title**, **summarization**, or **“small model”** feature that calls a **hosted** model; those requests do **not** go to **oMLX**.
-- **Model picker:** Use **only** your **custom provider** + **`YOUR_MODEL_ID`** for agent chat. **Auto Free**, **hosted** catalog models, and other **cloud** endpoints are **strictly prohibited** for repository inference in this workflow.
 - **Credits and gateway:** Ignore built-in **gateway** model lists for this workflow; they exist for Kilo’s cloud offering and are the wrong surface for **oMLX-only** inference.
 
 Sign-in still uses Kilo’s servers for **authentication** only; **model** traffic for agents must stay on **`127.0.0.1`**.
@@ -208,7 +208,7 @@ Sign-in still uses Kilo’s servers for **authentication** only; **model** traff
 
 ### Cursor and Kilo privacy
 
-**Cursor** follows your **company license** and settings as deployed. **Kilo Code** is separate: in **Kilo Code → Settings**, **disable** **autocomplete** and other **gateway** features so they do not send **code or prompts** off your **oMLX** path ([Kilo Code: local inference only](#kilo-code-local-inference-only)). Pointing **Kilo** at **oMLX** does **not** change Kilo’s defaults for you.
+**Cursor** follows your **company license** and settings as deployed. **Kilo Code** is separate: use **Kilo Code → Settings → Models** and the toggles in [Kilo Code: local inference only](#kilo-code-local-inference-only) so **code and prompts** do not leave your **oMLX** path. Pointing **Kilo** at **oMLX** does **not** change Kilo’s defaults for you.
 
 ## Privacy rule for proprietary code
 
@@ -216,7 +216,7 @@ For repositories where **all** model calls must stay on **oMLX**:
 
 - **Base URL:** `http://127.0.0.1:8000/v1` in the **Kilo Code** custom provider (another **loopback** port is fine if oMLX is configured there—**never** a wide-area host).
 - **Model id:** exactly what **`GET /v1/models`** returns for your oMLX instance.
-- **Autocomplete:** **Off**—it does **not** use the **oMLX** URL ([Kilo Code: local inference only](#kilo-code-local-inference-only)).
+- **Models screen:** Every assignable slot → your **custom provider** model; **Autocomplete** → **off** (cloud-only; [Kilo Code: local inference only](#kilo-code-local-inference-only)).
 - **Background cloud models:** **Off**—session titling and similar must not call **hosted** models ([Using Kilo for Free](https://kilo.ai/docs/getting-started/using-kilo-for-free)).
 
 Do **not** select **hosted** cloud models or OAuth-backed **cloud** tiers in **Kilo** for those repos—keep the active model on your **`omlx`** (or similarly named) custom provider only. In **Cursor**, **do not** use **OpenAI base URL override** or the **built-in Agent** expecting them to drive **oMLX** on loopback; use **Kilo Code** for that integration ([Why localhost must go through Kilo](#why-localhost-must-go-through-kilo-not-cursors-override-or-agent)).
